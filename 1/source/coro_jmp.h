@@ -152,8 +152,9 @@ static struct CoRuntime
     crt.curr_coro_i = (crt.curr_coro_i + 1) % crt.coro_count;                   \
     if (setjmp(crt.coros[old_i].exec_point) == 0) {                             \
         ASSERT(crt.coros[old_i].timestamp != -1);                               \
-        crt.coros[old_i].clocks_spent += clock() - crt.coros[old_i].timestamp;  \
-        crt.coros[crt.curr_coro_i].timestamp = clock();                         \
+        clock_t stamp = clock();                                                \
+        crt.coros[old_i].clocks_spent += stamp - crt.coros[old_i].timestamp;    \
+        crt.coros[crt.curr_coro_i].timestamp = stamp;                           \
         longjmp(crt.coros[crt.curr_coro_i].exec_point, 1);                      \
     }                                                                           \
 })

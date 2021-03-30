@@ -71,11 +71,11 @@ num_t GetMinimalNumber(size_t *coro_idx);
 
 bool Free();
 
-void PrintStatistics(clock_t timestamp);
+void PrintStatistics(clock_t dif_sort, clock_t dif_merge);
 
 int main(int argc, char* argv[])
 {
-    clock_t timestamp = clock();
+    clock_t stamp1 = clock();
     if (!InitRuntime(argc, argv)) {
         LOG_FATAL("failed to initialize runtime");
     }
@@ -90,10 +90,15 @@ int main(int argc, char* argv[])
     coro_finish();
     coro_wait_all();
 
+    clock_t stamp2 = clock();
+
     if (!MergeFiles()) {
         return 1;
     }
-    PrintStatistics(timestamp);
+
+    clock_t stamp3 = clock();
+
+    PrintStatistics(stamp2 - stamp1, stamp3 - stamp2);
 
     return Free() ? 0 : 1;
 }
@@ -412,15 +417,21 @@ bool Free()
     return true;
 }
 
-void PrintStatistics(clock_t init_timestamp)
+void PrintStatistics(clock_t dif_sort, clock_t dif_merge)
 {
     printf("Time spent in co-routines:\n");
     clock_t clocks_per_usec = CLOCKS_PER_SEC / 1000000;
     ASSERT(clocks_per_usec != (clock_t) 0);
+    size_t sum_us = 0;
     for (size_t i = 0; i < crt.coro_count; i++) {
         size_t us = (size_t) (crt.coros[i].clocks_spent / clocks_per_usec);
+        sum_us += us;
         printf("--id = %2lu:\t%lu us\n", i, us);
     }
-    size_t global_us = (size_t) ((clock() - init_timestamp) / clocks_per_usec);
-    printf("\nTotal time spent:\t%lu us\n\n", global_us);
+    printf("Sum: %lu\n", sum_us);
+    size_t dif_sort_us = (size_t) (dif_sort / clocks_per_usec);
+    size_t dif_merge_us = (size_t) (dif_merge / clocks_per_usec);
+    
+    printf("\nTotal time spent:\t%lu us + %lu us\n(sort in coroutines + time to merge)\n\n",
+           dif_sort_us, dif_merge_us);
 }
